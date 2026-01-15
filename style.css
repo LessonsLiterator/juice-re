@@ -2,7 +2,7 @@ body {
     margin: 0;
     overflow: hidden;
     background: radial-gradient(circle, #2c3e50 0%, #000000 100%);
-    font-family: 'Arial', sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     user-select: none;
     touch-action: none;
 }
@@ -14,7 +14,6 @@ body {
 #game-ui {
     position: absolute;
     top: 20px;
-    left: 0;
     width: 100%;
     color: white;
     pointer-events: none;
@@ -24,9 +23,9 @@ body {
 .stats {
     display: flex;
     justify-content: space-around;
-    font-size: 28px;
+    font-size: 24px;
     font-weight: bold;
-    text-shadow: 0 0 10px rgba(0,0,0,0.8);
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
 }
 
 #msg {
@@ -54,8 +53,8 @@ body {
 
 button {
     padding: 15px 50px;
-    font-size: 24px;
-    background: #2ecc71;
+    font-size: 22px;
+    background: #27ae60;
     color: white;
     border: none;
     border-radius: 50px;
@@ -66,5 +65,16 @@ button {
 
 button:hover {
     transform: scale(1.1);
-    background: #27ae60;
+    background: #2ecc71;
+}
+
+.footer {
+    position: absolute;
+    bottom: 15px;
+    width: 100%;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 14px;
+    letter-spacing: 1px;
+    pointer-events: none;
 }
