@@ -13,8 +13,8 @@ let slices = [];
 let trail = [];
 
 const config = {
-    gravity: 0.05,             // Еще более плавная гравитация для эффекта зависания
-    initialVelocity: -12,      // Достаточная сила, чтобы подлететь высоко
+    gravity: 0.07,             // Оптимальная гравитация для плавности
+    initialVelocity: -9.5,     // Умеренная сила: фрукты взлетают до середины+ экрана
     spawnRate: 0.015,          
     objSize: 110,              
     fruitImages: ['apple.png', 'durian.png', 'mango.png', 'orange.png', 'pears.png', 'strawberry.png', 'tomato.png', 'watermelon.png'],
@@ -41,7 +41,7 @@ class FruitHalf {
         this.w = config.objSize;
         this.h = config.objSize;
         this.vx = vx + (side === 'left' ? -2 : 2);
-        this.vy = -2;
+        this.vy = -2.5;
         this.rotation = rotation;
         this.rotationSpeed = side === 'left' ? -0.05 : 0.05;
     }
@@ -79,9 +79,9 @@ class GameObject {
         this.w = config.objSize;
         this.h = config.objSize;
         this.x = Math.random() * (canvas.width - this.w);
-        this.y = canvas.height + 20; // Появление чуть ниже границы
-        this.vx = (Math.random() - 0.5) * 4; 
-        this.vy = config.initialVelocity - Math.random() * 4;
+        this.y = canvas.height + 15; 
+        this.vx = (Math.random() - 0.5) * 3; 
+        this.vy = config.initialVelocity - Math.random() * 2.5; // Небольшой разброс высоты
         this.rotation = 0;
         this.rotationSpeed = (Math.random() - 0.5) * 0.06;
         this.isSliced = false;
@@ -96,11 +96,10 @@ class GameObject {
 
         if (this.x <= 0 || this.x + this.w >= canvas.width) this.vx *= -1;
         
-        // Помечаем, что фрукт стал виден игроку
-        if (this.y < canvas.height - 50) this.hasEnteredScreen = true;
+        // Считаем фрукт видимым, когда он поднялся над нижним краем
+        if (this.y < canvas.height - 20) this.hasEnteredScreen = true;
 
         if (this.y > canvas.height + 150) {
-            // Штраф только за видимые пропущенные фрукты
             if (!this.isSliced && !this.isMascot && this.hasEnteredScreen) {
                 score = Math.max(0, score - 5);
                 scoreEl.innerText = score;
@@ -165,8 +164,8 @@ function checkSlice(mx, my) {
         const cy = obj.y + obj.h/2;
         const dist = Math.hypot(mx - cx, my - cy);
 
-        // Мгновенный разрез при входе в радиус фрукта
-        if (dist < 48) { 
+        // Чуть уменьшенный хитбокс для честности (45)
+        if (dist < 45) { 
             obj.slice();
             if (obj.isMascot) {
                 lives--;
