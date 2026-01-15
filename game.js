@@ -13,9 +13,9 @@ let slices = [];
 let trail = [];
 
 const config = {
-    gravity: 0.08,             // Замедленная гравитация
-    initialVelocity: -11,      // Достаточная сила прыжка, чтобы вылететь вверх
-    spawnRate: 0.02,          
+    gravity: 0.05,             // Очень медленное падение
+    initialVelocity: -12,      // Мощный толчок вверх, чтобы точно вылетали
+    spawnRate: 0.015,          
     objSize: 110,              
     fruitImages: ['apple.png', 'durian.png', 'mango.png', 'orange.png', 'pears.png', 'strawberry.png', 'tomato.png', 'watermelon.png'],
     mascotImages: ['maskot1.png', 'maskot2.png']
@@ -23,12 +23,15 @@ const config = {
 
 const images = {};
 
+// Предзагрузка с проверкой в консоли
 function preloadAssets() {
     const all = [...config.fruitImages, ...config.mascotImages];
     all.forEach(src => {
         const img = new Image();
-        img.src = `assets/${src}`;
+        img.src = `./assets/${src}`; // Относительный путь для GitHub/Vercel
         images[src] = img;
+        img.onload = () => console.log("Loaded:", src);
+        img.onerror = () => console.error("FAILED to load:", src);
     });
 }
 
@@ -43,7 +46,7 @@ class FruitHalf {
         this.vx = vx + (side === 'left' ? -2 : 2);
         this.vy = -3;
         this.rotation = rotation;
-        this.rotationSpeed = side === 'left' ? -0.06 : 0.06;
+        this.rotationSpeed = side === 'left' ? -0.05 : 0.05;
     }
 
     update() {
@@ -51,7 +54,6 @@ class FruitHalf {
         this.x += this.vx;
         this.y += this.vy;
         this.rotation += this.rotationSpeed;
-        // Отскок от боковых стенок
         if (this.x <= 0 || this.x + this.w/2 >= canvas.width) this.vx *= -1;
         return this.y < canvas.height + 200;
     }
@@ -80,12 +82,15 @@ class GameObject {
         this.w = config.objSize;
         this.h = config.objSize;
         this.x = Math.random() * (canvas.width - this.w);
-        this.y = canvas.height; // Появление ровно на нижней границе
+        
+        // Появляется чуть ниже экрана
+        this.y = canvas.height + 10; 
         this.vx = (Math.random() - 0.5) * 4; 
-        this.vy = config.initialVelocity - Math.random() * 3;
+        this.vy = config.initialVelocity - Math.random() * 5;
         this.rotation = 0;
         this.rotationSpeed = (Math.random() - 0.5) * 0.08;
         this.isSliced = false;
+        this.hasEnteredScreen = false; // Флаг: был ли фрукт виден
     }
 
     update() {
@@ -94,15 +99,16 @@ class GameObject {
         this.y += this.vy;
         this.rotation += this.rotationSpeed;
 
-        // Отскок от стен, чтобы не улетали за экран
-        if (this.x <= 0 || this.x + this.w >= canvas.width) {
-            this.vx *= -1;
-            this.x = Math.max(0, Math.min(this.x, canvas.width - this.w));
-        }
+        // Отскок от стен
+        if (this.x <= 0 || this.x + this.w >= canvas.width) this.vx *= -1;
 
-        // Удаление и штраф, если упал вниз
-        if (this.y > canvas.height + 100) {
-            if (!this.isSliced && !this.isMascot) {
+        // Проверяем, вошел ли фрукт в видимую зону
+        if (this.y < canvas.height) this.hasEnteredScreen = true;
+
+        // Удаление объекта
+        if (this.y > canvas.height + 150) {
+            // Штраф только если фрукт был виден и не был разрезан
+            if (!this.isSliced && !this.isMascot && this.hasEnteredScreen) {
                 score = Math.max(0, score - 5);
                 scoreEl.innerText = score;
                 showMsg("-5", "#ff4757");
@@ -115,7 +121,7 @@ class GameObject {
     draw() {
         if (this.isSliced) return;
         const img = images[this.imgKey];
-        if (img && img.complete) {
+        if (img && img.complete && img.naturalWidth !== 0) {
             ctx.save();
             ctx.translate(this.x + this.w/2, this.y + this.h/2);
             ctx.rotate(this.rotation);
@@ -164,10 +170,9 @@ function checkSlice(x1, y1, x2, y2) {
         if (obj.isSliced) return;
         const cx = obj.x + obj.w/2;
         const cy = obj.y + obj.h/2;
-        // Вычисление расстояния до линии разреза
         const dist = Math.abs((y2-y1)*cx - (x2-x1)*cy + x2*y1 - y2*x1) / Math.sqrt((y2-y1)**2 + (x2-x1)**2);
 
-        if (dist < 50 && cx > Math.min(x1,x2)-20 && cx < Math.max(x1,x2)+20) {
+        if (dist < 55 && cx > Math.min(x1,x2)-30 && cx < Math.max(x1,x2)+30) {
             obj.slice();
             if (obj.isMascot) {
                 lives--;
@@ -209,7 +214,6 @@ function animate() {
     if (!gameActive) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Отрисовка шлейфа
     if (trail.length > 1) {
         ctx.beginPath();
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
