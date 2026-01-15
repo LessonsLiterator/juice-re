@@ -13,26 +13,20 @@ let slices = [];
 let trail = [];
 
 const config = {
-    gravity: 0.1,             
-    initialVelocity: -11,      
-    spawnRate: 0.025,          
-    objSize: 100,              
+    gravity: 0.07,             // Еще медленнее падение
+    initialVelocity: -8.5,     // Более плавный взлет
+    spawnRate: 0.02,          
+    objSize: 110,              
     fruitImages: ['apple.png', 'durian.png', 'mango.png', 'orange.png', 'pears.png', 'strawberry.png', 'tomato.png', 'watermelon.png'],
     mascotImages: ['maskot1.png', 'maskot2.png']
 };
 
 const images = {};
-let loadedImagesCount = 0;
 
 function preloadAssets() {
     const all = [...config.fruitImages, ...config.mascotImages];
     all.forEach(src => {
         const img = new Image();
-        img.onload = () => {
-            loadedImagesCount++;
-            console.log(`Loaded: ${src} (${loadedImagesCount}/${all.length})`);
-        };
-        img.onerror = () => console.error(`Error loading: assets/${src}`);
         img.src = `assets/${src}`;
         images[src] = img;
     });
@@ -46,10 +40,10 @@ class FruitHalf {
         this.side = side;
         this.w = config.objSize;
         this.h = config.objSize;
-        this.vx = vx + (side === 'left' ? -3 : 3);
-        this.vy = -3;
+        this.vx = vx + (side === 'left' ? -2.5 : 2.5);
+        this.vy = -2.5;
         this.rotation = rotation;
-        this.rotationSpeed = side === 'left' ? -0.1 : 0.1;
+        this.rotationSpeed = side === 'left' ? -0.07 : 0.07;
     }
 
     update() {
@@ -57,11 +51,7 @@ class FruitHalf {
         this.x += this.vx;
         this.y += this.vy;
         this.rotation += this.rotationSpeed;
-
-        // Отскок половинок от стен
-        if (this.x <= 0 || this.x + this.w/2 >= canvas.width) {
-            this.vx *= -1;
-        }
+        if (this.x <= 0 || this.x + this.w/2 >= canvas.width) this.vx *= -1;
         return this.y < canvas.height + 200;
     }
 
@@ -86,16 +76,14 @@ class GameObject {
         this.isMascot = Math.random() < 0.2;
         const list = this.isMascot ? config.mascotImages : config.fruitImages;
         this.imgKey = list[Math.floor(Math.random() * list.length)];
-        
         this.w = config.objSize;
         this.h = config.objSize;
-        // Появление строго в пределах экрана
         this.x = Math.random() * (canvas.width - this.w);
         this.y = canvas.height + this.h;
-        this.vx = (Math.random() - 0.5) * 6; // Горизонтальная скорость
-        this.vy = config.initialVelocity - Math.random() * 5;
+        this.vx = (Math.random() - 0.5) * 3.5; // Снижена боковая скорость
+        this.vy = config.initialVelocity - Math.random() * 4;
         this.rotation = 0;
-        this.rotationSpeed = (Math.random() - 0.5) * 0.1;
+        this.rotationSpeed = (Math.random() - 0.5) * 0.08;
         this.isSliced = false;
     }
 
@@ -105,10 +93,8 @@ class GameObject {
         this.y += this.vy;
         this.rotation += this.rotationSpeed;
 
-        // ОТСКОК ОТ СТЕН
         if (this.x <= 0 || this.x + this.w >= canvas.width) {
             this.vx *= -1;
-            this.x = Math.max(0, Math.min(this.x, canvas.width - this.w));
         }
 
         if (this.y > canvas.height + 100 && !this.isSliced) {
@@ -126,16 +112,9 @@ class GameObject {
         ctx.save();
         ctx.translate(this.x + this.w/2, this.y + this.h/2);
         ctx.rotate(this.rotation);
-        
         const img = images[this.imgKey];
         if (img && img.complete) {
             ctx.drawImage(img, -this.w/2, -this.h/2, this.w, this.h);
-        } else {
-            // Запасной вариант, если картинка не прогрузилась
-            ctx.beginPath();
-            ctx.arc(0, 0, this.w/2, 0, Math.PI*2);
-            ctx.fillStyle = this.isMascot ? 'red' : 'orange';
-            ctx.fill();
         }
         ctx.restore();
     }
@@ -187,12 +166,12 @@ function checkSlice(x1, y1, x2, y2) {
             if (obj.isMascot) {
                 lives--;
                 livesEl.innerText = lives;
-                showMsg("МАСКОТ! -1 ЖИЗНЬ", "#ff4757");
+                showMsg("MASCOT! -1 LIFE", "#ff4757");
                 if (lives <= 0) endGame();
             } else {
                 score += 10;
                 scoreEl.innerText = score;
-                showMsg("БАЦ!", "#2ecc71");
+                showMsg("NICE!", "#2ecc71");
             }
         }
     });
@@ -214,8 +193,8 @@ window.addEventListener('touchmove', handleMove);
 function endGame() {
     gameActive = false;
     overlay.style.display = 'flex';
-    overlay.querySelector('h1').innerText = "Игра окончена!";
-    overlay.querySelector('p').innerText = `Результат: ${score}`;
+    overlay.querySelector('h1').innerText = "Game Over!";
+    overlay.querySelector('p').innerText = `Final Score: ${score}`;
 }
 
 function animate() {
