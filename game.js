@@ -93,10 +93,8 @@ class GameObject {
         this.x += this.vx;
         this.y += this.vy;
         this.rotation += this.rotationSpeed;
-
         if (this.x <= 0 || this.x + this.w >= canvas.width) this.vx *= -1;
         if (this.y < canvas.height - 20) this.hasEnteredScreen = true;
-
         if (this.y > canvas.height + 150) {
             if (!this.isSliced && !this.isMascot && this.hasEnteredScreen) {
                 score = Math.max(0, score - 5);
@@ -161,7 +159,6 @@ function checkSlice(mx, my) {
         const cx = obj.x + obj.w/2;
         const cy = obj.y + obj.h/2;
         const dist = Math.hypot(mx - cx, my - cy);
-
         if (dist < 45) { 
             obj.slice();
             if (obj.isMascot) {
@@ -200,7 +197,6 @@ function endGame() {
 function animate() {
     if (!gameActive) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     if (trail.length > 1) {
         ctx.beginPath();
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
@@ -209,20 +205,16 @@ function animate() {
         for (let i = 1; i < trail.length; i++) ctx.lineTo(trail[i].x, trail[i].y);
         ctx.stroke();
     }
-
     if (Math.random() < config.spawnRate) objects.push(new GameObject());
-
     objects = objects.filter(obj => {
         const active = obj.update();
         obj.draw();
         return active && !obj.isSliced;
     });
-
     slices = slices.filter(s => {
         const active = s.update();
         s.draw();
         return active;
     });
-
     requestAnimationFrame(animate);
 }
