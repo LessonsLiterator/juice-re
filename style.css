@@ -2,11 +2,23 @@ body {
     margin: 0;
     overflow: hidden;
     background-color: #1a1a1a;
-    background-image: 
-        radial-gradient(circle at center, #2c2c2c 0%, #121212 100%);
+    background-image: radial-gradient(circle at center, #2c2c2c 0%, #121212 100%);
     font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     user-select: none;
     touch-action: none;
+}
+
+#flash {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: red;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 100;
+    transition: opacity 0.1s ease-out;
 }
 
 #gameCanvas {
