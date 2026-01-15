@@ -13,8 +13,8 @@ let slices = [];
 let trail = [];
 
 const config = {
-    gravity: 0.1,             
-    initialVelocity: -8.5,     
+    gravity: 0.1,             // Спокойная гравитация
+    initialVelocity: -8.5,     // Фрукты не улетают выше экрана
     spawnRate: 0.015,          
     objSize: 110,              
     fruitImages: ['apple.png', 'durian.png', 'mango.png', 'orange.png', 'pears.png', 'strawberry.png', 'tomato.png', 'watermelon.png'],
@@ -111,7 +111,7 @@ class GameObject {
     draw() {
         if (this.isSliced) return;
         const img = images[this.imgKey];
-        if (img && img.complete) {
+        if (img && img.complete && img.naturalWidth !== 0) {
             ctx.save();
             ctx.translate(this.x + this.w/2, this.y + this.h/2);
             ctx.rotate(this.rotation);
@@ -155,24 +155,20 @@ function showMsg(text, color = "#fff") {
     setTimeout(() => msgEl.style.opacity = 0, 500);
 }
 
-function checkSlice(x1, y1, x2, y2) {
-    // Вычисляем длину свайпа
-    const swipeDist = Math.hypot(x2 - x1, y2 - y1);
-    
-    // Если движение слишком медленное/короткое, это не разрез
-    if (swipeDist < 15) return; 
-
+function checkSlice(mx, my) {
+    //mx, my — текущие координаты мыши
     objects.forEach(obj => {
         if (obj.isSliced) return;
         
+        // Координаты центра фрукта
         const cx = obj.x + obj.w/2;
         const cy = obj.y + obj.h/2;
         
-        // Расстояние от центра объекта до линии движения
-        const dist = Math.abs((y2-y1)*cx - (x2-x1)*cy + x2*y1 - y2*x1) / Math.sqrt((y2-y1)**2 + (x2-x1)**2);
+        // Расстояние от мышки до центра фрукта
+        const dist = Math.hypot(mx - cx, my - cy);
 
-        // Уменьшенный порог (45 вместо 55) для точности
-        if (dist < 45 && cx > Math.min(x1,x2)-20 && cx < Math.max(x1,x2)+20) {
+        // Если мышка внутри радиуса фрукта
+        if (dist < 45) {
             obj.slice();
             if (obj.isMascot) {
                 lives--;
@@ -188,17 +184,13 @@ function checkSlice(x1, y1, x2, y2) {
     });
 }
 
-let lastX = null, lastY = null;
 const handleMove = (e) => {
+    if (!gameActive) return;
     const x = e.touches ? e.touches[0].clientX : e.clientX;
     const y = e.touches ? e.touches[0].clientY : e.clientY;
     
-    if (gameActive && lastX !== null) {
-        checkSlice(lastX, lastY, x, y);
-    }
-    
-    lastX = x;
-    lastY = y;
+    // Срезаем сразу по текущим координатам
+    checkSlice(x, y);
     
     trail.push({x, y});
     if (trail.length > 8) trail.shift();
