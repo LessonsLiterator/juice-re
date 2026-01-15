@@ -13,10 +13,10 @@ let slices = [];
 let trail = [];
 
 const config = {
-    gravity: 0.05,             // Very slow fall
-    initialVelocity: -7.5,     // Gentle toss
-    spawnRate: 0.015,          // Slower spawn frequency
-    objSize: 115,              
+    gravity: 0.08,             // Замедленная гравитация
+    initialVelocity: -11,      // Достаточная сила прыжка, чтобы вылететь вверх
+    spawnRate: 0.02,          
+    objSize: 110,              
     fruitImages: ['apple.png', 'durian.png', 'mango.png', 'orange.png', 'pears.png', 'strawberry.png', 'tomato.png', 'watermelon.png'],
     mascotImages: ['maskot1.png', 'maskot2.png']
 };
@@ -27,8 +27,6 @@ function preloadAssets() {
     const all = [...config.fruitImages, ...config.mascotImages];
     all.forEach(src => {
         const img = new Image();
-        img.onload = () => console.log(`Resource loaded: ${src}`);
-        img.onerror = () => console.error(`Resource missing: assets/${src}`);
         img.src = `assets/${src}`;
         images[src] = img;
     });
@@ -43,7 +41,7 @@ class FruitHalf {
         this.w = config.objSize;
         this.h = config.objSize;
         this.vx = vx + (side === 'left' ? -2 : 2);
-        this.vy = -2;
+        this.vy = -3;
         this.rotation = rotation;
         this.rotationSpeed = side === 'left' ? -0.06 : 0.06;
     }
@@ -53,6 +51,7 @@ class FruitHalf {
         this.x += this.vx;
         this.y += this.vy;
         this.rotation += this.rotationSpeed;
+        // Отскок от боковых стенок
         if (this.x <= 0 || this.x + this.w/2 >= canvas.width) this.vx *= -1;
         return this.y < canvas.height + 200;
     }
@@ -81,11 +80,11 @@ class GameObject {
         this.w = config.objSize;
         this.h = config.objSize;
         this.x = Math.random() * (canvas.width - this.w);
-        this.y = canvas.height + this.h;
-        this.vx = (Math.random() - 0.5) * 3; 
+        this.y = canvas.height; // Появление ровно на нижней границе
+        this.vx = (Math.random() - 0.5) * 4; 
         this.vy = config.initialVelocity - Math.random() * 3;
         this.rotation = 0;
-        this.rotationSpeed = (Math.random() - 0.5) * 0.05;
+        this.rotationSpeed = (Math.random() - 0.5) * 0.08;
         this.isSliced = false;
     }
 
@@ -95,29 +94,34 @@ class GameObject {
         this.y += this.vy;
         this.rotation += this.rotationSpeed;
 
-        if (this.x <= 0 || this.x + this.w >= canvas.width) this.vx *= -1;
+        // Отскок от стен, чтобы не улетали за экран
+        if (this.x <= 0 || this.x + this.w >= canvas.width) {
+            this.vx *= -1;
+            this.x = Math.max(0, Math.min(this.x, canvas.width - this.w));
+        }
 
-        if (this.y > canvas.height + 100 && !this.isSliced) {
-            if (!this.isMascot) {
+        // Удаление и штраф, если упал вниз
+        if (this.y > canvas.height + 100) {
+            if (!this.isSliced && !this.isMascot) {
                 score = Math.max(0, score - 5);
                 scoreEl.innerText = score;
                 showMsg("-5", "#ff4757");
             }
             return false;
         }
-        return this.y < canvas.height + 150;
+        return true;
     }
 
     draw() {
         if (this.isSliced) return;
-        ctx.save();
-        ctx.translate(this.x + this.w/2, this.y + this.h/2);
-        ctx.rotate(this.rotation);
         const img = images[this.imgKey];
         if (img && img.complete) {
+            ctx.save();
+            ctx.translate(this.x + this.w/2, this.y + this.h/2);
+            ctx.rotate(this.rotation);
             ctx.drawImage(img, -this.w/2, -this.h/2, this.w, this.h);
+            ctx.restore();
         }
-        ctx.restore();
     }
 
     slice() {
@@ -160,9 +164,10 @@ function checkSlice(x1, y1, x2, y2) {
         if (obj.isSliced) return;
         const cx = obj.x + obj.w/2;
         const cy = obj.y + obj.h/2;
+        // Вычисление расстояния до линии разреза
         const dist = Math.abs((y2-y1)*cx - (x2-x1)*cy + x2*y1 - y2*x1) / Math.sqrt((y2-y1)**2 + (x2-x1)**2);
 
-        if (dist < 50 && cx > Math.min(x1,x2)-25 && cx < Math.max(x1,x2)+25) {
+        if (dist < 50 && cx > Math.min(x1,x2)-20 && cx < Math.max(x1,x2)+20) {
             obj.slice();
             if (obj.isMascot) {
                 lives--;
@@ -182,7 +187,9 @@ let lastX = null, lastY = null;
 const handleMove = (e) => {
     const x = e.touches ? e.touches[0].clientX : e.clientX;
     const y = e.touches ? e.touches[0].clientY : e.clientY;
-    if (gameActive && lastX !== null) checkSlice(lastX, lastY, x, y);
+    if (gameActive && lastX !== null) {
+        checkSlice(lastX, lastY, x, y);
+    }
     lastX = x; lastY = y;
     trail.push({x, y});
     if (trail.length > 8) trail.shift();
@@ -202,6 +209,7 @@ function animate() {
     if (!gameActive) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Отрисовка шлейфа
     if (trail.length > 1) {
         ctx.beginPath();
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
