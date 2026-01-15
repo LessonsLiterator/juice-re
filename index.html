@@ -3,21 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Precision Slicer</title>
+    <title>Fruit Precision Cutter</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="game-ui">
         <div class="stats">
-            <span>Score: <b id="score">0</b></span>
-            <span>Lives: <b id="lives">3</b></span>
+            <div>Score: <span id="score">0</span></div>
+            <div>Lives: <span id="lives">5</span></div>
         </div>
         <div id="msg"></div>
     </div>
     <canvas id="gameCanvas"></canvas>
     <div id="overlay">
-        <h1>Precision Slicer</h1>
-        <p>Разрезай фрукты точно пополам.<br>Не трогай маскотов!</p>
+        <h1>Fruit Cutter</h1>
+        <p>Просто води мышкой, чтобы разрезать!<br>
+        Фрукт мимо: -5 очков. Маскот: -1 жизнь.</p>
         <button onclick="startGame()">Начать игру</button>
     </div>
     <script src="game.js"></script>
