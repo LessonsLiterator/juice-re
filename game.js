@@ -13,9 +13,9 @@ let slices = [];
 let trail = [];
 
 const config = {
-    gravity: 0.03,             // Максимально медленное падение
-    initialVelocity: -7.5,     // Небольшая сила взлета (не долетают до верха)
-    spawnRate: 0.012,          // Редкое появление для спокойного темпа
+    gravity: 0.1,              // Увеличил, чтобы быстрее падали вниз
+    initialVelocity: -8.5,     // Уменьшил, чтобы не долетали до верха
+    spawnRate: 0.015,          
     objSize: 110,              
     fruitImages: ['apple.png', 'durian.png', 'mango.png', 'orange.png', 'pears.png', 'strawberry.png', 'tomato.png', 'watermelon.png'],
     mascotImages: ['maskot1.png', 'maskot2.png']
@@ -40,10 +40,10 @@ class FruitHalf {
         this.side = side;
         this.w = config.objSize;
         this.h = config.objSize;
-        this.vx = vx + (side === 'left' ? -1.5 : 1.5);
-        this.vy = -1.5;
+        this.vx = vx + (side === 'left' ? -2 : 2);
+        this.vy = -2;
         this.rotation = rotation;
-        this.rotationSpeed = side === 'left' ? -0.04 : 0.04;
+        this.rotationSpeed = side === 'left' ? -0.05 : 0.05;
     }
 
     update() {
@@ -79,11 +79,11 @@ class GameObject {
         this.w = config.objSize;
         this.h = config.objSize;
         this.x = Math.random() * (canvas.width - this.w);
-        this.y = canvas.height + 5; 
-        this.vx = (Math.random() - 0.5) * 2.5; // Медленное движение в бока
+        this.y = canvas.height + 10; 
+        this.vx = (Math.random() - 0.5) * 4; 
         this.vy = config.initialVelocity - Math.random() * 3;
         this.rotation = 0;
-        this.rotationSpeed = (Math.random() - 0.5) * 0.05;
+        this.rotationSpeed = (Math.random() - 0.5) * 0.06;
         this.isSliced = false;
         this.hasEnteredScreen = false;
     }
