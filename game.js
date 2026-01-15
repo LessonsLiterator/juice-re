@@ -167,7 +167,7 @@ function checkSlice(mx, my) {
             if (obj.isMascot) {
                 lives--;
                 livesEl.innerText = lives;
-                showMsg("MASCOT! -1 LIFE", "#ff4757");
+                showMsg("OCTOPUS! -1 LIFE", "#ff4757");
                 if (lives <= 0) endGame();
             } else {
                 score += 10;
