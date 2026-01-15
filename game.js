@@ -13,9 +13,9 @@ let slices = [];
 let trail = [];
 
 const config = {
-    gravity: 0.05,             // Очень медленное падение
-    initialVelocity: -12,      // Мощный толчок вверх, чтобы точно вылетали
-    spawnRate: 0.015,          
+    gravity: 0.03,             // Максимально медленное падение
+    initialVelocity: -7.5,     // Небольшая сила взлета (не долетают до верха)
+    spawnRate: 0.012,          // Редкое появление для спокойного темпа
     objSize: 110,              
     fruitImages: ['apple.png', 'durian.png', 'mango.png', 'orange.png', 'pears.png', 'strawberry.png', 'tomato.png', 'watermelon.png'],
     mascotImages: ['maskot1.png', 'maskot2.png']
@@ -23,15 +23,12 @@ const config = {
 
 const images = {};
 
-// Предзагрузка с проверкой в консоли
 function preloadAssets() {
     const all = [...config.fruitImages, ...config.mascotImages];
     all.forEach(src => {
         const img = new Image();
-        img.src = `./assets/${src}`; // Относительный путь для GitHub/Vercel
+        img.src = `./assets/${src}`;
         images[src] = img;
-        img.onload = () => console.log("Loaded:", src);
-        img.onerror = () => console.error("FAILED to load:", src);
     });
 }
 
@@ -43,10 +40,10 @@ class FruitHalf {
         this.side = side;
         this.w = config.objSize;
         this.h = config.objSize;
-        this.vx = vx + (side === 'left' ? -2 : 2);
-        this.vy = -3;
+        this.vx = vx + (side === 'left' ? -1.5 : 1.5);
+        this.vy = -1.5;
         this.rotation = rotation;
-        this.rotationSpeed = side === 'left' ? -0.05 : 0.05;
+        this.rotationSpeed = side === 'left' ? -0.04 : 0.04;
     }
 
     update() {
@@ -82,15 +79,13 @@ class GameObject {
         this.w = config.objSize;
         this.h = config.objSize;
         this.x = Math.random() * (canvas.width - this.w);
-        
-        // Появляется чуть ниже экрана
-        this.y = canvas.height + 10; 
-        this.vx = (Math.random() - 0.5) * 4; 
-        this.vy = config.initialVelocity - Math.random() * 5;
+        this.y = canvas.height + 5; 
+        this.vx = (Math.random() - 0.5) * 2.5; // Медленное движение в бока
+        this.vy = config.initialVelocity - Math.random() * 3;
         this.rotation = 0;
-        this.rotationSpeed = (Math.random() - 0.5) * 0.08;
+        this.rotationSpeed = (Math.random() - 0.5) * 0.05;
         this.isSliced = false;
-        this.hasEnteredScreen = false; // Флаг: был ли фрукт виден
+        this.hasEnteredScreen = false;
     }
 
     update() {
@@ -99,15 +94,10 @@ class GameObject {
         this.y += this.vy;
         this.rotation += this.rotationSpeed;
 
-        // Отскок от стен
         if (this.x <= 0 || this.x + this.w >= canvas.width) this.vx *= -1;
-
-        // Проверяем, вошел ли фрукт в видимую зону
         if (this.y < canvas.height) this.hasEnteredScreen = true;
 
-        // Удаление объекта
         if (this.y > canvas.height + 150) {
-            // Штраф только если фрукт был виден и не был разрезан
             if (!this.isSliced && !this.isMascot && this.hasEnteredScreen) {
                 score = Math.max(0, score - 5);
                 scoreEl.innerText = score;
