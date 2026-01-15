@@ -13,8 +13,8 @@ let slices = [];
 let trail = [];
 
 const config = {
-    gravity: 0.07,             // Оптимальная гравитация для плавности
-    initialVelocity: -9.5,     // Умеренная сила: фрукты взлетают до середины+ экрана
+    gravity: 0.07,
+    initialVelocity: -9.5,
     spawnRate: 0.015,          
     objSize: 110,              
     fruitImages: ['apple.png', 'durian.png', 'mango.png', 'orange.png', 'pears.png', 'strawberry.png', 'tomato.png', 'watermelon.png'],
@@ -81,7 +81,7 @@ class GameObject {
         this.x = Math.random() * (canvas.width - this.w);
         this.y = canvas.height + 15; 
         this.vx = (Math.random() - 0.5) * 3; 
-        this.vy = config.initialVelocity - Math.random() * 2.5; // Небольшой разброс высоты
+        this.vy = config.initialVelocity - Math.random() * 2.5;
         this.rotation = 0;
         this.rotationSpeed = (Math.random() - 0.5) * 0.06;
         this.isSliced = false;
@@ -95,8 +95,6 @@ class GameObject {
         this.rotation += this.rotationSpeed;
 
         if (this.x <= 0 || this.x + this.w >= canvas.width) this.vx *= -1;
-        
-        // Считаем фрукт видимым, когда он поднялся над нижним краем
         if (this.y < canvas.height - 20) this.hasEnteredScreen = true;
 
         if (this.y > canvas.height + 150) {
@@ -113,7 +111,7 @@ class GameObject {
     draw() {
         if (this.isSliced) return;
         const img = images[this.imgKey];
-        if (img && img.complete) {
+        if (img && img.complete && img.naturalWidth !== 0) {
             ctx.save();
             ctx.translate(this.x + this.w/2, this.y + this.h/2);
             ctx.rotate(this.rotation);
@@ -164,7 +162,6 @@ function checkSlice(mx, my) {
         const cy = obj.y + obj.h/2;
         const dist = Math.hypot(mx - cx, my - cy);
 
-        // Чуть уменьшенный хитбокс для честности (45)
         if (dist < 45) { 
             obj.slice();
             if (obj.isMascot) {
