@@ -4,6 +4,7 @@ const scoreEl = document.getElementById('score');
 const livesEl = document.getElementById('lives');
 const overlay = document.getElementById('overlay');
 const msgEl = document.getElementById('msg');
+const flashDiv = document.getElementById('flash');
 
 let score = 0;
 let lives = 5;
@@ -128,6 +129,13 @@ class GameObject {
     }
 }
 
+function triggerFlash() {
+    flashDiv.style.opacity = '0.5';
+    setTimeout(() => {
+        flashDiv.style.opacity = '0';
+    }, 100);
+}
+
 function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -164,7 +172,8 @@ function checkSlice(mx, my) {
             if (obj.isMascot) {
                 lives--;
                 livesEl.innerText = lives;
-                showMsg("OCTOPUS! -1 LIFE", "#ff4757");
+                showMsg("REDACTED! -1 LIFE!", "#ff4757");
+                triggerFlash();
                 if (lives <= 0) endGame();
             } else {
                 score += 10;
