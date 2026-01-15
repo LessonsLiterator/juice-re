@@ -13,39 +13,43 @@ let slices = [];
 let trail = [];
 
 const config = {
-    gravity: 0.12,
-    initialVelocity: -10,
-    spawnRate: 0.02,
-    objSize: 120, // Крупные фрукты
+    gravity: 0.1,             
+    initialVelocity: -11,      
+    spawnRate: 0.025,          
+    objSize: 100,              
     fruitImages: ['apple.png', 'durian.png', 'mango.png', 'orange.png', 'pears.png', 'strawberry.png', 'tomato.png', 'watermelon.png'],
     mascotImages: ['maskot1.png', 'maskot2.png']
 };
 
 const images = {};
+let loadedImagesCount = 0;
 
-// Загрузка ресурсов
 function preloadAssets() {
     const all = [...config.fruitImages, ...config.mascotImages];
     all.forEach(src => {
         const img = new Image();
+        img.onload = () => {
+            loadedImagesCount++;
+            console.log(`Loaded: ${src} (${loadedImagesCount}/${all.length})`);
+        };
+        img.onerror = () => console.error(`Error loading: assets/${src}`);
         img.src = `assets/${src}`;
         images[src] = img;
     });
 }
 
-// Класс для половинок (создается автоматически из целой картинки)
 class FruitHalf {
     constructor(x, y, img, side, vx, rotation) {
         this.x = x;
         this.y = y;
         this.img = img;
-        this.side = side; // 'left' или 'right'
+        this.side = side;
         this.w = config.objSize;
         this.h = config.objSize;
         this.vx = vx + (side === 'left' ? -3 : 3);
-        this.vy = -2;
+        this.vy = -3;
         this.rotation = rotation;
-        this.rotationSpeed = side === 'left' ? -0.08 : 0.08;
+        this.rotationSpeed = side === 'left' ? -0.1 : 0.1;
     }
 
     update() {
@@ -53,26 +57,26 @@ class FruitHalf {
         this.x += this.vx;
         this.y += this.vy;
         this.rotation += this.rotationSpeed;
-        return this.y < canvas.height + 100;
+
+        // Отскок половинок от стен
+        if (this.x <= 0 || this.x + this.w/2 >= canvas.width) {
+            this.vx *= -1;
+        }
+        return this.y < canvas.height + 200;
     }
 
     draw() {
+        if (!this.img || !this.img.complete) return;
         ctx.save();
-        ctx.translate(this.x + this.w / 2, this.y + this.h / 2);
+        ctx.translate(this.x + this.w / 4, this.y + this.h / 2);
         ctx.rotate(this.rotation);
-        
-        // Рисуем только половину исходного изображения
         const sw = this.img.width / 2;
         const sh = this.img.height;
-        
         if (this.side === 'left') {
-            // Левая часть: берем лево, рисуем слева
-            ctx.drawImage(this.img, 0, 0, sw, sh, -this.w/2, -this.h/2, this.w/2, this.h);
+            ctx.drawImage(this.img, 0, 0, sw, sh, -this.w/4, -this.h/2, this.w/2, this.h);
         } else {
-            // Правая часть: берем право, рисуем справа
             ctx.drawImage(this.img, sw, 0, sw, sh, 0, -this.h/2, this.w/2, this.h);
         }
-        
         ctx.restore();
     }
 }
@@ -85,12 +89,13 @@ class GameObject {
         
         this.w = config.objSize;
         this.h = config.objSize;
+        // Появление строго в пределах экрана
         this.x = Math.random() * (canvas.width - this.w);
         this.y = canvas.height + this.h;
-        this.vx = (Math.random() - 0.5) * 4;
-        this.vy = config.initialVelocity - Math.random() * 4;
+        this.vx = (Math.random() - 0.5) * 6; // Горизонтальная скорость
+        this.vy = config.initialVelocity - Math.random() * 5;
         this.rotation = 0;
-        this.rotationSpeed = (Math.random() - 0.5) * 0.06;
+        this.rotationSpeed = (Math.random() - 0.5) * 0.1;
         this.isSliced = false;
     }
 
@@ -100,15 +105,20 @@ class GameObject {
         this.y += this.vy;
         this.rotation += this.rotationSpeed;
 
-        // Если целый фрукт упал вниз
-        if (this.y > canvas.height + 50 && !this.isSliced) {
+        // ОТСКОК ОТ СТЕН
+        if (this.x <= 0 || this.x + this.w >= canvas.width) {
+            this.vx *= -1;
+            this.x = Math.max(0, Math.min(this.x, canvas.width - this.w));
+        }
+
+        if (this.y > canvas.height + 100 && !this.isSliced) {
             if (!this.isMascot) {
-                score = Math.max(0, score - 5); // Штраф только за целые фрукты
+                score = Math.max(0, score - 5);
                 scoreEl.innerText = score;
             }
             return false;
         }
-        return this.y < canvas.height + 100;
+        return this.y < canvas.height + 150;
     }
 
     draw() {
@@ -116,17 +126,26 @@ class GameObject {
         ctx.save();
         ctx.translate(this.x + this.w/2, this.y + this.h/2);
         ctx.rotate(this.rotation);
-        ctx.drawImage(images[this.imgKey], -this.w/2, -this.h/2, this.w, this.h);
+        
+        const img = images[this.imgKey];
+        if (img && img.complete) {
+            ctx.drawImage(img, -this.w/2, -this.h/2, this.w, this.h);
+        } else {
+            // Запасной вариант, если картинка не прогрузилась
+            ctx.beginPath();
+            ctx.arc(0, 0, this.w/2, 0, Math.PI*2);
+            ctx.fillStyle = this.isMascot ? 'red' : 'orange';
+            ctx.fill();
+        }
         ctx.restore();
     }
 
     slice() {
         this.isSliced = true;
-        // Генерируем осколки только для фруктов
         if (!this.isMascot) {
             const img = images[this.imgKey];
             slices.push(new FruitHalf(this.x, this.y, img, 'left', this.vx, this.rotation));
-            slices.push(new FruitHalf(this.x, this.y, img, 'right', this.vx, this.rotation));
+            slices.push(new FruitHalf(this.x + this.w/2, this.y, img, 'right', this.vx, this.rotation));
         }
     }
 }
@@ -161,11 +180,9 @@ function checkSlice(x1, y1, x2, y2) {
         if (obj.isSliced) return;
         const cx = obj.x + obj.w/2;
         const cy = obj.y + obj.h/2;
-        
-        // Математика разреза
         const dist = Math.abs((y2-y1)*cx - (x2-x1)*cy + x2*y1 - y2*x1) / Math.sqrt((y2-y1)**2 + (x2-x1)**2);
 
-        if (dist < 55 && cx > Math.min(x1,x2)-20 && cx < Math.max(x1,x2)+20) {
+        if (dist < 50 && cx > Math.min(x1,x2)-25 && cx < Math.max(x1,x2)+25) {
             obj.slice();
             if (obj.isMascot) {
                 lives--;
@@ -173,10 +190,9 @@ function checkSlice(x1, y1, x2, y2) {
                 showMsg("МАСКОТ! -1 ЖИЗНЬ", "#ff4757");
                 if (lives <= 0) endGame();
             } else {
-                const precision = Math.max(0, 100 - Math.round(dist * 1.5));
-                score += Math.floor(precision / 5);
+                score += 10;
                 scoreEl.innerText = score;
-                showMsg(precision > 90 ? "ИДЕАЛЬНО!" : "ХОРОШО!", "#2ecc71");
+                showMsg("БАЦ!", "#2ecc71");
             }
         }
     });
@@ -184,10 +200,9 @@ function checkSlice(x1, y1, x2, y2) {
 
 let lastX = null, lastY = null;
 const handleMove = (e) => {
-    if (!gameActive) return;
     const x = e.touches ? e.touches[0].clientX : e.clientX;
     const y = e.touches ? e.touches[0].clientY : e.clientY;
-    if (lastX !== null) checkSlice(lastX, lastY, x, y);
+    if (gameActive && lastX !== null) checkSlice(lastX, lastY, x, y);
     lastX = x; lastY = y;
     trail.push({x, y});
     if (trail.length > 8) trail.shift();
@@ -200,17 +215,16 @@ function endGame() {
     gameActive = false;
     overlay.style.display = 'flex';
     overlay.querySelector('h1').innerText = "Игра окончена!";
-    overlay.querySelector('p').innerText = `Счёт: ${score}`;
+    overlay.querySelector('p').innerText = `Результат: ${score}`;
 }
 
 function animate() {
     if (!gameActive) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Рисуем след от разреза
     if (trail.length > 1) {
         ctx.beginPath();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
         ctx.lineWidth = 3;
         ctx.moveTo(trail[0].x, trail[0].y);
         for (let i = 1; i < trail.length; i++) ctx.lineTo(trail[i].x, trail[i].y);
@@ -219,14 +233,12 @@ function animate() {
 
     if (Math.random() < config.spawnRate) objects.push(new GameObject());
 
-    // Обновляем целые объекты
     objects = objects.filter(obj => {
         const active = obj.update();
         obj.draw();
         return active && !obj.isSliced;
     });
 
-    // Обновляем и рисуем половинки (осколки)
     slices = slices.filter(s => {
         const active = s.update();
         s.draw();
