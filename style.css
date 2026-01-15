@@ -1,14 +1,12 @@
 body {
     margin: 0;
     overflow: hidden;
-    /* Текстура разделочной доски (темное дерево) */
     background-color: #3d2b1f;
     background-image: 
         linear-gradient(90deg, rgba(255,255,255,.02) 50%, transparent 50%),
         linear-gradient(rgba(255,255,255,.02) 50%, transparent 50%),
         radial-gradient(circle at 50% 50%, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.5) 100%);
     background-size: 40px 40px, 40px 40px, 100% 100%;
-    
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     user-select: none;
     touch-action: none;
@@ -22,7 +20,7 @@ body {
     position: absolute;
     top: 20px;
     width: 100%;
-    color: #f1c40f; /* Золотистый цвет для текста на дереве */
+    color: #f1c40f;
     pointer-events: none;
     z-index: 10;
 }
@@ -62,10 +60,10 @@ body {
 button {
     padding: 15px 50px;
     font-size: 22px;
-    background: #e67e22; /* Оранжевый как дерево */
+    background: #e67e22;
     color: white;
     border: none;
-    border-radius: 5px; /* Квадратная кнопка лучше подходит к доске */
+    border-radius: 5px;
     cursor: pointer;
     margin-top: 30px;
     box-shadow: 0 4px 0 #a84300;
