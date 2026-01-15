@@ -13,10 +13,10 @@ let slices = [];
 let trail = [];
 
 const config = {
-    gravity: 0.07,             // Еще медленнее падение
-    initialVelocity: -8.5,     // Более плавный взлет
-    spawnRate: 0.02,          
-    objSize: 110,              
+    gravity: 0.05,             // Very slow fall
+    initialVelocity: -7.5,     // Gentle toss
+    spawnRate: 0.015,          // Slower spawn frequency
+    objSize: 115,              
     fruitImages: ['apple.png', 'durian.png', 'mango.png', 'orange.png', 'pears.png', 'strawberry.png', 'tomato.png', 'watermelon.png'],
     mascotImages: ['maskot1.png', 'maskot2.png']
 };
@@ -27,6 +27,8 @@ function preloadAssets() {
     const all = [...config.fruitImages, ...config.mascotImages];
     all.forEach(src => {
         const img = new Image();
+        img.onload = () => console.log(`Resource loaded: ${src}`);
+        img.onerror = () => console.error(`Resource missing: assets/${src}`);
         img.src = `assets/${src}`;
         images[src] = img;
     });
@@ -40,10 +42,10 @@ class FruitHalf {
         this.side = side;
         this.w = config.objSize;
         this.h = config.objSize;
-        this.vx = vx + (side === 'left' ? -2.5 : 2.5);
-        this.vy = -2.5;
+        this.vx = vx + (side === 'left' ? -2 : 2);
+        this.vy = -2;
         this.rotation = rotation;
-        this.rotationSpeed = side === 'left' ? -0.07 : 0.07;
+        this.rotationSpeed = side === 'left' ? -0.06 : 0.06;
     }
 
     update() {
@@ -80,10 +82,10 @@ class GameObject {
         this.h = config.objSize;
         this.x = Math.random() * (canvas.width - this.w);
         this.y = canvas.height + this.h;
-        this.vx = (Math.random() - 0.5) * 3.5; // Снижена боковая скорость
-        this.vy = config.initialVelocity - Math.random() * 4;
+        this.vx = (Math.random() - 0.5) * 3; 
+        this.vy = config.initialVelocity - Math.random() * 3;
         this.rotation = 0;
-        this.rotationSpeed = (Math.random() - 0.5) * 0.08;
+        this.rotationSpeed = (Math.random() - 0.5) * 0.05;
         this.isSliced = false;
     }
 
@@ -93,14 +95,13 @@ class GameObject {
         this.y += this.vy;
         this.rotation += this.rotationSpeed;
 
-        if (this.x <= 0 || this.x + this.w >= canvas.width) {
-            this.vx *= -1;
-        }
+        if (this.x <= 0 || this.x + this.w >= canvas.width) this.vx *= -1;
 
         if (this.y > canvas.height + 100 && !this.isSliced) {
             if (!this.isMascot) {
                 score = Math.max(0, score - 5);
                 scoreEl.innerText = score;
+                showMsg("-5", "#ff4757");
             }
             return false;
         }
@@ -194,7 +195,7 @@ function endGame() {
     gameActive = false;
     overlay.style.display = 'flex';
     overlay.querySelector('h1').innerText = "Game Over!";
-    overlay.querySelector('p').innerText = `Final Score: ${score}`;
+    overlay.querySelector('p').innerHTML = `Final Score: ${score}`;
 }
 
 function animate() {
