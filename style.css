@@ -1,128 +1,220 @@
-body {
-    margin: 0;
-    overflow: hidden;
-    
-    /* Реалистичная текстура темного дерева */
-    background-color: #2c1608;
-    background-image: 
-        /* Эффект освещения (свет в центре, тени по углам) */
-        radial-gradient(circle at center, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0.4) 100%),
-        /* Мелкие волокна дерева */
-        repeating-linear-gradient(to right, rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 1px, transparent 1px, transparent 10px),
-        /* Крупные волокна и сучки */
-        repeating-linear-gradient(90deg, #321a0f 0px, #321a0f 50px, #3d2216 50px, #3d2216 100px);
-    background-blend-mode: multiply, normal, normal;
-    
-    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    user-select: none;
-    touch-action: none;
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+const livesEl = document.getElementById('lives');
+const overlay = document.getElementById('overlay');
+const msgEl = document.getElementById('msg');
+
+let score = 0;
+let lives = 5;
+let gameActive = false;
+let objects = []; 
+let slices = [];  
+let trail = [];
+
+const config = {
+    gravity: 0.07,
+    initialVelocity: -9.5,
+    spawnRate: 0.015,          
+    objSize: 110,              
+    fruitImages: ['apple.png', 'durian.png', 'mango.png', 'orange.png', 'pears.png', 'strawberry.png', 'tomato.png', 'watermelon.png'],
+    mascotImages: ['maskot1.png', 'maskot2.png']
+};
+
+const images = {};
+
+function preloadAssets() {
+    const all = [...config.fruitImages, ...config.mascotImages];
+    all.forEach(src => {
+        const img = new Image();
+        img.src = `./assets/${src}`;
+        images[src] = img;
+    });
 }
 
-#gameCanvas {
-    display: block;
-    /* Легкое свечение на холсте для глубины */
-    filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));
+class FruitHalf {
+    constructor(x, y, img, side, vx, rotation) {
+        this.x = x;
+        this.y = y;
+        this.img = img;
+        this.side = side;
+        this.w = config.objSize;
+        this.h = config.objSize;
+        this.vx = vx + (side === 'left' ? -2 : 2);
+        this.vy = -2.5;
+        this.rotation = rotation;
+        this.rotationSpeed = side === 'left' ? -0.05 : 0.05;
+    }
+
+    update() {
+        this.vy += config.gravity;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.rotation += this.rotationSpeed;
+        if (this.x <= 0 || this.x + this.w/2 >= canvas.width) this.vx *= -1;
+        return this.y < canvas.height + 200;
+    }
+
+    draw() {
+        if (!this.img || !this.img.complete) return;
+        ctx.save();
+        ctx.translate(this.x + this.w / 4, this.y + this.h / 2);
+        ctx.rotate(this.rotation);
+        const sw = this.img.width / 2;
+        const sh = this.img.height;
+        if (this.side === 'left') {
+            ctx.drawImage(this.img, 0, 0, sw, sh, -this.w/4, -this.h/2, this.w/2, this.h);
+        } else {
+            ctx.drawImage(this.img, sw, 0, sw, sh, 0, -this.h/2, this.w/2, this.h);
+        }
+        ctx.restore();
+    }
 }
 
-#game-ui {
-    position: absolute;
-    top: 25px;
-    width: 100%;
-    /* Красивый золотистый цвет с эффектом гравировки */
-    color: #f39c12; 
-    pointer-events: none;
-    z-index: 10;
+class GameObject {
+    constructor() {
+        this.isMascot = Math.random() < 0.2;
+        const list = this.isMascot ? config.mascotImages : config.fruitImages;
+        this.imgKey = list[Math.floor(Math.random() * list.length)];
+        this.w = config.objSize;
+        this.h = config.objSize;
+        this.x = Math.random() * (canvas.width - this.w);
+        this.y = canvas.height + 15; 
+        this.vx = (Math.random() - 0.5) * 3; 
+        this.vy = config.initialVelocity - Math.random() * 2.5;
+        this.rotation = 0;
+        this.rotationSpeed = (Math.random() - 0.5) * 0.06;
+        this.isSliced = false;
+        this.hasEnteredScreen = false;
+    }
+
+    update() {
+        this.vy += config.gravity;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.rotation += this.rotationSpeed;
+        if (this.x <= 0 || this.x + this.w >= canvas.width) this.vx *= -1;
+        if (this.y < canvas.height - 20) this.hasEnteredScreen = true;
+        if (this.y > canvas.height + 150) {
+            if (!this.isSliced && !this.isMascot && this.hasEnteredScreen) {
+                score = Math.max(0, score - 5);
+                scoreEl.innerText = score;
+                showMsg("-5", "#ff4757");
+            }
+            return false;
+        }
+        return true;
+    }
+
+    draw() {
+        if (this.isSliced) return;
+        const img = images[this.imgKey];
+        if (img && img.complete && img.naturalWidth !== 0) {
+            ctx.save();
+            ctx.translate(this.x + this.w/2, this.y + this.h/2);
+            ctx.rotate(this.rotation);
+            ctx.drawImage(img, -this.w/2, -this.h/2, this.w, this.h);
+            ctx.restore();
+        }
+    }
+
+    slice() {
+        this.isSliced = true;
+        if (!this.isMascot) {
+            const img = images[this.imgKey];
+            slices.push(new FruitHalf(this.x, this.y, img, 'left', this.vx, this.rotation));
+            slices.push(new FruitHalf(this.x + this.w/2, this.y, img, 'right', this.vx, this.rotation));
+        }
+    }
 }
 
-.stats {
-    display: flex;
-    justify-content: space-around;
-    font-size: 28px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    /* Тройная тень для объема */
-    text-shadow: 
-        1px 1px 0px #3d2216,
-        2px 2px 0px rgba(0,0,0,0.5),
-        0 0 15px rgba(243, 156, 18, 0.2);
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 }
 
-#msg {
-    text-align: center;
-    margin-top: 30px;
-    font-size: 50px;
-    font-weight: 900;
-    height: 60px;
-    opacity: 0;
-    transition: opacity 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    text-shadow: 3px 3px 10px rgba(0,0,0,0.8);
+window.addEventListener('resize', resize);
+resize();
+preloadAssets();
+
+function startGame() {
+    score = 0; lives = 5; objects = []; slices = [];
+    gameActive = true;
+    scoreEl.innerText = score;
+    livesEl.innerText = lives;
+    overlay.style.display = 'none';
+    animate();
 }
 
-#overlay {
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    /* Размытие фона при старте и конце игры */
-    background: rgba(0,0,0,0.75);
-    backdrop-filter: blur(5px);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    z-index: 20;
-    text-align: center;
+function showMsg(text, color = "#fff") {
+    msgEl.innerText = text;
+    msgEl.style.color = color;
+    msgEl.style.opacity = 1;
+    setTimeout(() => msgEl.style.opacity = 0, 500);
 }
 
-h1 {
-    font-size: 80px;
-    margin: 0;
-    color: #f1c40f;
-    text-shadow: 0 0 20px rgba(241, 196, 15, 0.5);
-    letter-spacing: 5px;
+function checkSlice(mx, my) {
+    objects.forEach(obj => {
+        if (obj.isSliced) return;
+        const cx = obj.x + obj.w/2;
+        const cy = obj.y + obj.h/2;
+        const dist = Math.hypot(mx - cx, my - cy);
+        if (dist < 45) { 
+            obj.slice();
+            if (obj.isMascot) {
+                lives--;
+                livesEl.innerText = lives;
+                showMsg("OCTOPUS! -1 LIFE", "#ff4757");
+                if (lives <= 0) endGame();
+            } else {
+                score += 10;
+                scoreEl.innerText = score;
+                showMsg("NICE!", "#2ecc71");
+            }
+        }
+    });
 }
 
-#overlay p {
-    font-size: 20px;
-    opacity: 0.8;
-    margin: 20px 0;
+const handleMove = (e) => {
+    if (!gameActive) return;
+    const x = e.touches ? e.touches[0].clientX : e.clientX;
+    const y = e.touches ? e.touches[0].clientY : e.clientY;
+    checkSlice(x, y);
+    trail.push({x, y});
+    if (trail.length > 8) trail.shift();
+};
+
+window.addEventListener('mousemove', handleMove);
+window.addEventListener('touchmove', handleMove);
+
+function endGame() {
+    gameActive = false;
+    overlay.style.display = 'flex';
+    overlay.querySelector('h1').innerText = "Game Over!";
+    overlay.querySelector('p').innerHTML = `Final Score: ${score}`;
 }
 
-button {
-    padding: 18px 60px;
-    font-size: 24px;
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    background: #d35400;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    box-shadow: 0 6px 0 #8e44ad; /* Фиолетовая кайма снизу для стиля */
-    transition: all 0.1s;
-}
-
-button:hover {
-    background: #e67e22;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 0 #8e44ad;
-}
-
-button:active {
-    transform: translateY(4px);
-    box-shadow: 0 2px 0 #8e44ad;
-}
-
-.footer {
-    position: absolute;
-    bottom: 20px;
-    width: 100%;
-    text-align: center;
-    color: rgba(255, 255, 255, 0.25);
-    font-size: 16px;
-    font-weight: bold;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    pointer-events: none;
+function animate() {
+    if (!gameActive) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (trail.length > 1) {
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.lineWidth = 3;
+        ctx.moveTo(trail[0].x, trail[0].y);
+        for (let i = 1; i < trail.length; i++) ctx.lineTo(trail[i].x, trail[i].y);
+        ctx.stroke();
+    }
+    if (Math.random() < config.spawnRate) objects.push(new GameObject());
+    objects = objects.filter(obj => {
+        const active = obj.update();
+        obj.draw();
+        return active && !obj.isSliced;
+    });
+    slices = slices.filter(s => {
+        const active = s.update();
+        s.draw();
+        return active;
+    });
+    requestAnimationFrame(animate);
 }
