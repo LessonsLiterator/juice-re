@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fruit Precision Cutter</title>
+    <title>Fruit-Re</title>
+    <!-- Иконка вкладки -->
+    <link rel="icon" type="image/png" href="mark.png">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -14,13 +16,18 @@
         </div>
         <div id="msg"></div>
     </div>
+
     <canvas id="gameCanvas"></canvas>
+
     <div id="overlay">
-        <h1>Fruit Cutter</h1>
-        <p>Просто води мышкой, чтобы разрезать!<br>
-        Фрукт мимо: -5 очков. Маскот: -1 жизнь.</p>
-        <button onclick="startGame()">Начать игру</button>
+        <h1>Fruit-Re</h1>
+        <p>Slice fruits by moving your cursor.<br>
+        Avoid mascots! Missing fruits: -5 points.</p>
+        <button onclick="startGame()">Start Game</button>
     </div>
+
+    <div class="footer">Created by Iryna</div>
+
     <script src="game.js"></script>
 </body>
 </html>
